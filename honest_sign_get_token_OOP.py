@@ -60,12 +60,22 @@ class GetTokenHonestSign:
         capicom_certificate_include_end_entity_only = 2
         try:
             oSigner = win32com.client.Dispatch('CAdESCOM.CPSigner')
-            oSigner.Certificate = self.getSignerCertificate()
-            oSignedData = win32com.client.Dispatch('CAdESCOM.CadesSignedData')
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 100')
             exit(100)
+        try:
+            oSigner.Certificate = self.getSignerCertificate()
+        except Exception as exc:
+            logging.debug(exc)
+            logging.debug('error 101')
+            exit(101)
+        try:
+            oSignedData = win32com.client.Dispatch('CAdESCOM.CadesSignedData')
+        except Exception as exc:
+            logging.debug(exc)
+            logging.debug('error 102')
+            exit(102)
         logging.debug(oSigner)
         logging.debug(oSignedData)
         oSigner.Options = capicom_certificate_include_end_entity_only
@@ -74,8 +84,8 @@ class GetTokenHonestSign:
             out_data = oSignedData.SignCades(oSigner, cades_bes, False, capicom_encode_base64)
         except Exception as exc:
             logging.debug(exc)
-            logging.debug('error 101')
-            exit(101)
+            logging.debug('error 103')
+            exit(103)
         out_data3 = out_data.replace('\r\n', '')
         return out_data3
 
