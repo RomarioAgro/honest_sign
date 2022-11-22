@@ -4,6 +4,7 @@ import requests
 import os
 import datetime
 import win32com.client
+import json
 from typing import Any
 from decouple import config as conf_token
 import copy_env_to_script_py
@@ -34,6 +35,7 @@ class GetTokenHonestSign:
         self.uuid = r.json()['uuid']
         self.data = r.json()['data']
         self.serial_sert = conf_token('serial_number', default=None)
+        self.signed_string = self.get_signed_string()
         self.token = self.get_token()
 
     def getSignerCertificate(self) -> Any:
@@ -48,7 +50,7 @@ class GetTokenHonestSign:
             if elem.SerialNumber == self.serial_sert:
                 return elem
 
-    def get_token(self) -> str:
+    def get_signed_string(self) -> str:
         """
         меотд подписи строки дата нашим сертификатом
         :return: str наш токен для работы с API честного знака
@@ -89,6 +91,20 @@ class GetTokenHonestSign:
         out_data3 = out_data.replace('\r\n', '')
         return out_data3
 
+    def get_token(self):
+        i_dict = {
+            'uuid': self.uuid,
+            'data': self.signed_string
+        }
+        headers = {
+            "content-type": "application/json;charset=UTF-8",
+        }
+        url = 'https://ismp.crpt.ru/api/v3/auth/cert/'
+        data = json.dumps(i_dict)
+        r = requests.post(url=url, data=data, headers=headers)
+        return r.json()['token']
+
+
 
 def make_env(i_token: str = '') -> None:
     """
@@ -96,9 +112,12 @@ def make_env(i_token: str = '') -> None:
     :param i_token:
     :return:
     """
-    o_token = 'token = ' + '\'' + i_token + '\''
+    o_token = 'token = ' + i_token + '\n'
+    o_string = '#файл .env создан на компе {0}'.format(os.environ['COMPUTERNAME'])
     with open('token.env', 'w') as f_env:
         f_env.write(o_token)
+        # f_env.write('\n')
+        f_env.write(o_string)
 
 
 def copy_env():
@@ -108,6 +127,7 @@ def copy_env():
 def main():
     i_honest_sign = GetTokenHonestSign()
     print('пошли дальше')
+    print(i_honest_sign.token)
     make_env(i_token=i_honest_sign.token)
     write_path = '\\\\shoprsync\\rsync\\script_py\\'
     file_to_copy = 'token.env'
