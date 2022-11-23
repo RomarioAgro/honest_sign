@@ -58,6 +58,7 @@ data = json.dumps(i_dict)
 
 rr = requests.post(url=url, data=data, headers=headers)
 token = rr.json()['token']
+
 url = 'https://ismp.crpt.ru/api/v4/facade/cis/cis_list'
 headers = {
     'Authorization': 'Bearer ' + token,
@@ -65,7 +66,8 @@ headers = {
     'accept': '*/*'
 }
 i_data = {
-    'cises': ['010290000070625521,X=v-?>h7EaT)'],
+    # 'cises': ['010290000070625521,X=v-?>h7EaT)'],
+    'cises': ['0104640037366258215OTc\"R0=q)KT.'],
     'childrenPaging': False
 }
 

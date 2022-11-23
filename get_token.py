@@ -36,3 +36,6 @@ out_data3 = ''
 for elem in out_data2:
     out_data3 += elem.replace('\r', '')
 # здесь у нас идет подпись строки данных через COM объект
+print(out_data)
+print(out_data2)
+print(out_data3)
