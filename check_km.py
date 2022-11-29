@@ -5,6 +5,7 @@ from sys import argv, exit
 import logging
 import datetime
 import os
+os.chdir('d:\\kassa\\script_py\\honest_sign\\')
 
 logging.basicConfig(
     filename='d:\\files\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime('%Y-%m-%d') + '.log',
@@ -19,7 +20,7 @@ class CheckKM:
     конструктор класса проверки КМ в честном знаке
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         with open(argv[1], 'r') as rm_file:
             i_dict_km = json.load(rm_file)
         self.token = conf_token('token', default=None)
@@ -31,7 +32,7 @@ class CheckKM:
         self.answer = None
         logging.debug(i_dict_km)
 
-    def check_km(self):
+    def check_km(self) -> None:
         """
         метод проверки КМ в честном знаке
         :return:
@@ -55,17 +56,20 @@ class CheckKM:
         self.status_km = inf_about_km.get('status', None)
         self.answer = r.json()
 
-    def verdict(self):
+    def verdict(self) -> int:
         """
-        метод возврата результата проверки
+        метод возврата результата проверки,
+        возвращаем цифровые коды, сбис потом будет их
+        идентифицировать
         :return:
         """
         if self.operation == 'status':
-            # тут надо вывести окно с организацией, наим и статус
-            # и сохранить все в файл
+            # запрос status может быть у 1000 кодов
+            # и надо сохранить все в файл
             self.save_answer()
             return 0
-        if self.km == self.owner_inn:
+        if self.inn == self.owner_inn:
+            # это если запрос индивидуальынй по одному коду
             if self.operation == 'sale' and self.status_km == 'INTRODUCED':  #  "продажа" и статус "в обороте"
                 return 0  # ошибок нет
             if self.operation == 'return_sale' and self.status_km == 'RETIRED':  #  "возврат" и статус "выбыл"
@@ -78,20 +82,28 @@ class CheckKM:
         else:
             return 100  #  если у нас даже ИНН продавца и владельца не совпадают, то ваще кранты
 
-    def save_answer(self):
+    def save_answer(self) -> None:
+        """
+        метод сохранения результата запроса в текстовый файл
+        :return:
+        """
+        list_str = []
         with open('r:\\status_KI_all.txt', 'a') as o_file:
             for km in self.answer:
-                o_str = km + ';' + self.answer[km]['ownerInn'] + ';' + self.answer[km]['ownerName'] + ';' + \
-                        self.answer[km]['status'] + '\n'
+                list_str.append(km)
+                list_str.append(self.answer[km]['status'])
+                list_str.append(self.answer[km]['ownerInn'])
+                list_str.append(self.answer[km]['ownerName'])
+                list_str.append('\n')
+                o_str = ';'.join(list_str)
                 o_file.write(o_str)
+                list_str.clear()
 
 
 def main():
     o_check = CheckKM()
     o_check.check_km()
     return o_check.verdict()
-
-    # o_check.save_answer()
 
 
 if __name__ == '__main__':
