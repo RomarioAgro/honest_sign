@@ -20,8 +20,8 @@ class CheckKM:
     конструктор класса проверки КМ в честном знаке
     """
 
-    def __init__(self) -> None:
-        with open(argv[1], 'r') as rm_file:
+    def __init__(self, f_name: str = '') -> None:
+        with open(f_name, 'r') as rm_file:
             i_dict_km = json.load(rm_file)
         self.token = conf_token('token', default=None)
         self.km = i_dict_km['km']
@@ -101,8 +101,15 @@ class CheckKM:
 
 
 def main():
-    o_check = CheckKM()
+    logging.debug('начало ')
+    logging.debug(argv)
+    try:
+        o_check = CheckKM(f_name=argv[1])
+    except Exception as exc:
+        logging.debug('error ' + exc)
+    logging.debug('создали объект ')
     o_check.check_km()
+    logging.debug('проверили км ')
     return o_check.verdict()
 
 
