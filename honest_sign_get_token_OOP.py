@@ -103,6 +103,7 @@ class GetTokenHonestSign:
         data = json.dumps(i_dict)
         r = requests.post(url=url, data=data, headers=headers)
         logging.debug(r.text)
+
         return r.json()['token']
 
 
