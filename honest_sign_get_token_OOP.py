@@ -113,11 +113,12 @@ def make_env(i_token: str = '') -> None:
     :return:
     """
     o_token = 'token = ' + i_token + '\n'
-    o_string = '#file .env make in comp {0}'.format(os.environ['COMPUTERNAME'])
+    o_string = 'description = file .env make in comp {0} \n'.format(os.environ['COMPUTERNAME'])
     with open('token.env', 'w') as f_env:
+        f_env.write(o_string)
         f_env.write(o_token)
         # f_env.write('\n')
-        f_env.write(o_string)
+
 
 
 def copy_env():
