@@ -102,6 +102,7 @@ class GetTokenHonestSign:
         url = 'https://ismp.crpt.ru/api/v3/auth/cert/'
         data = json.dumps(i_dict)
         r = requests.post(url=url, data=data, headers=headers)
+        logging.debug(r.text)
         return r.json()['token']
 
 
