@@ -12,7 +12,8 @@ import copy_env_to_script_py
 CAPICOM_LOCAL_MACHINE_STORE = 2
 
 logging.basicConfig(
-    filename=os.environ.get('Temp') + '\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime('%Y-%m-%d') + '.log',
+    filename=os.environ.get('Temp') + '\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime(
+        '%Y-%m-%d') + '.log',
     filemode='a',
     level=logging.DEBUG,
     format="%(asctime)s - %(filename)s - %(funcName)s: %(lineno)d - %(message)s",
@@ -107,7 +108,6 @@ class GetTokenHonestSign:
         return r.json()['token']
 
 
-
 def make_env(i_token: str = '') -> None:
     """
     функция сохранения токена в файл .env
@@ -120,7 +120,6 @@ def make_env(i_token: str = '') -> None:
         f_env.write(o_string)
         f_env.write(o_token)
         # f_env.write('\n')
-
 
 
 def copy_env():
@@ -151,7 +150,6 @@ def main():
         logging.debug(exc)
         logging.debug('error 103')
         exit(103)
-
 
 
 if __name__ == '__main__':

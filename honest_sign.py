@@ -1,6 +1,7 @@
 import requests
 import win32com.client
 import json
+
 # черновой рабочий вариант
 # надо убирать \n \r из подписанной строки
 # суть такая получаем строку двоичных данных, потом ее подписываем на сайте по ссылке
@@ -27,12 +28,15 @@ capicom_certificate_include_end_entity_only = 2
 oSigner = win32com.client.Dispatch('CAdESCOM.CPSigner')
 i_data = r.json()['data']
 sSerialNumber = '0352999F00DAADE08B468E1BA579D22560'
+
+
 def getSignerCertificate(sSerialNumber: str = ''):
     oStore = win32com.client.Dispatch("CAdESCOM.Store")
     oStore.Open(CAPICOM_LOCAL_MACHINE_STORE)
     for elem in oStore.Certificates:
         if elem.SerialNumber == sSerialNumber:
             return elem
+
 
 oSigner.Certificate = getSignerCertificate(sSerialNumber=sSerialNumber)
 oSigner.Options = capicom_certificate_include_end_entity_only
@@ -51,7 +55,7 @@ i_dict = {
     'data': out_data3
 }
 headers = {
-       "content-type": "application/json;charset=UTF-8",
+    "content-type": "application/json;charset=UTF-8",
 }
 url = 'https://ismp.crpt.ru/api/v3/auth/cert/'
 data = json.dumps(i_dict)
