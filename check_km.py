@@ -30,6 +30,7 @@ class CheckKM:
         self.owner_inn = ''
         self.status_km = ''
         self.answer = None
+        self.status_code = None
         logging.debug(i_dict_km)
 
     def check_km(self) -> None:
@@ -47,14 +48,20 @@ class CheckKM:
             'cises': self.km,
             'childrenPaging': False
         }
-        r = requests.post(url=url, headers=headers, json=i_data)
-        logging.debug(json.dumps(r.json()))
-        with open('status_KI.txt', 'w') as i_file:
-            i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
-        inf_about_km = r.json().get(self.km[0], None)
-        self.owner_inn = inf_about_km.get('ownerInn', None)
-        self.status_km = inf_about_km.get('status', None)
-        self.answer = r.json()
+        try:
+            r = requests.post(url=url, headers=headers, json=i_data)
+        except Exception as exc:
+            logging.debug('error ' + str(exc))
+            exit(504)
+        logging.debug(r.text)
+        self.status_code = r.status_code
+        if r.status_code == 200:
+            with open('status_KI.txt', 'w') as i_file:
+                i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
+            inf_about_km = r.json().get(self.km[0], None)
+            self.owner_inn = inf_about_km.get('ownerInn', None)
+            self.status_km = inf_about_km.get('status', None)
+            self.answer = r.json()
 
     def verdict(self) -> int:
         """
@@ -63,6 +70,9 @@ class CheckKM:
         идентифицировать
         :return:
         """
+        # если по какой-либо причине проверка не удалась
+        if self.status_code != 200:
+            return self.status_code
         if self.operation == 'status':
             # запрос status может быть у 1000 кодов
             # и надо сохранить все в файл
@@ -106,11 +116,16 @@ def main():
     try:
         o_check = CheckKM(f_name=argv[1])
     except Exception as exc:
-        logging.debug('error ' + exc)
+        logging.debug('error ' + str(exc))
+        return 401
     logging.debug('создали объект ')
-    o_check.check_km()
+    try:
+        o_check.check_km()
+    except Exception as exc:
+        logging.debug('error ' + str(exc))
     logging.debug('проверили км ')
-    return o_check.verdict()
+    o_exit = o_check.verdict()
+    return o_exit
 
 
 if __name__ == '__main__':
