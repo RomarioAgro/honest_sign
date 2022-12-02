@@ -9,7 +9,8 @@ from typing import Any
 from decouple import config as conf_token
 import copy_env_to_script_py
 from honest_sign_list_org import InnToCode
-#TODO предусмотри отправку ошибок в телеграм
+
+# TODO предусмотри отправку ошибок в телеграм
 CAPICOM_LOCAL_MACHINE_STORE = 2
 
 logging.basicConfig(
@@ -47,7 +48,6 @@ class GetTokenHonestSign:
             self.token = self.get_token()
         else:
             self.token = ''
-
 
     def getSignerCertificate(self) -> Any:
         """
