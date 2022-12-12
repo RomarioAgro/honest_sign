@@ -1,10 +1,12 @@
 import requests
 from decouple import config as conf_token
+from typing import List
 import json
 from sys import argv, exit
 import logging
 import datetime
 import os
+import re
 os.chdir('d:\\kassa\\script_py\\honest_sign\\')
 
 logging.basicConfig(
@@ -24,7 +26,7 @@ class CheckKM:
         with open(f_name, 'r') as rm_file:
             i_dict_km = json.load(rm_file)
         self.token = conf_token('token', default=None)
-        self.km = i_dict_km['km']
+        self.km = preparation_km(i_dict_km['km'])
         self.inn = i_dict_km['inn']
         self.operation = i_dict_km['operation']
         self.owner_inn = ''
@@ -53,7 +55,8 @@ class CheckKM:
         except Exception as exc:
             logging.debug('error ' + str(exc))
             exit(504)
-        logging.debug(r.text)
+        print(r.text)
+        logging.debug('результат проверки в ЧЗ: {0}'.format(r.text))
         self.status_code = r.status_code
         if r.status_code == 200:
             with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
@@ -113,6 +116,19 @@ class CheckKM:
                     o_file.write(o_str)
                     list_str.clear()
 
+def preparation_km(in_km: List[str]) -> List[str]:
+    """
+    функция подготовки кода маркировки к отправке в честный знак
+    выделяем cis сам код перед символами 91 и 92
+    :param in_km: list список строк с кодами маркировки
+    :return: list
+    """
+    pattern = r'91\S+92'
+    out_km = []
+    for elem in in_km:
+        list_break_pattern = re.split(pattern, elem)
+        out_km.append(list_break_pattern[0])
+    return out_km
 
 def main():
     logging.debug('начало ')
