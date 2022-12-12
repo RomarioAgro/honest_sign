@@ -55,16 +55,18 @@ class CheckKM:
         except Exception as exc:
             logging.debug('error ' + str(exc))
             exit(504)
-        print(r.text)
         logging.debug('результат проверки в ЧЗ: {0}'.format(r.text))
         self.status_code = r.status_code
-        if r.status_code == 200:
+        if r.status_code == 200 and r.text != '{}':
             with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
                 i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
             inf_about_km = r.json().get(self.km[0], None)
             self.owner_inn = inf_about_km.get('ownerInn', None)
             self.status_km = inf_about_km.get('status', None)
             self.answer = r.json()
+        else:
+            logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
+            exit(400)
 
     def verdict(self) -> int:
         """
@@ -122,12 +124,13 @@ def preparation_km(in_km: List[str]) -> List[str]:
     выделяем cis сам код перед символами 91 и 92
     :param in_km: list список строк с кодами маркировки
     :return: list
+    pattern нам нужно совпадение после 30 символа
     """
     pattern = r'91\S+92'
     out_km = []
     for elem in in_km:
-        list_break_pattern = re.split(pattern, elem)
-        out_km.append(list_break_pattern[0])
+        list_break_pattern = re.split(pattern, elem[30:])
+        out_km.append(elem[:30] + list_break_pattern[0])
     return out_km
 
 def main():
