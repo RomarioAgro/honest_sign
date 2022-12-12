@@ -56,7 +56,7 @@ class CheckKM:
         logging.debug(r.text)
         self.status_code = r.status_code
         if r.status_code == 200:
-            with open('status_KI.txt', 'w') as i_file:
+            with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
                 i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
             inf_about_km = r.json().get(self.km[0], None)
             self.owner_inn = inf_about_km.get('ownerInn', None)
@@ -85,11 +85,14 @@ class CheckKM:
             if self.operation == 'return_sale' and self.status_km == 'RETIRED':  #  "возврат" и статус "выбыл"
                 return 0  # ошибок нет
             if self.operation == 'sale' and self.status_km != 'INTRODUCED':  #  "продажа" и статус не совпадает с "в обороте"
+                logging.debug('операция из сбис: {0}, статус в ЧЗ ЧЗ: {1}'.format(self.operation, self.status_km))
                 return 101  # ошибка надо прерывать операцию
             if self.operation == 'return_sale' and self.status_km != 'RETIRED':  #  "возврат" и статус не равен "выбыл"
+                logging.debug('операция из сбис: {0}, статус в ЧЗ ЧЗ: {1}'.format(self.operation, self.status_km))
                 return 102  #  ошибка надо прерывать операцию
             return 103  #  неизвестная ошибка
         else:
+            logging.debug('инн из сбис: {0}, инн из ЧЗ: {1}'.format(self.inn, self.owner_inn))
             return 100  #  если у нас даже ИНН продавца и владельца не совпадают, то ваще кранты
 
     def save_answer(self) -> None:
@@ -100,14 +103,15 @@ class CheckKM:
         list_str = []
         with open('r:\\status_KI_all.txt', 'a') as o_file:
             for km in self.answer:
-                list_str.append(km)
-                list_str.append(self.answer[km]['status'])
-                list_str.append(self.answer[km]['ownerInn'])
-                list_str.append(self.answer[km]['ownerName'])
-                list_str.append('\n')
-                o_str = ';'.join(list_str)
-                o_file.write(o_str)
-                list_str.clear()
+                if self.answer[km]['status'] != 'INTRODUCED' or self.answer[km]['ownerInn'] != self.inn:
+                    list_str.append(km)
+                    list_str.append(self.answer[km]['status'])
+                    list_str.append(self.answer[km]['ownerInn'])
+                    list_str.append(self.answer[km]['ownerName'])
+                    list_str.append('\n')
+                    o_str = ';'.join(list_str)
+                    o_file.write(o_str)
+                    list_str.clear()
 
 
 def main():
