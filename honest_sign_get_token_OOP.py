@@ -12,6 +12,7 @@ from honest_sign_list_org import InnToCode
 
 # TODO предусмотри отправку ошибок в телеграм
 CAPICOM_LOCAL_MACHINE_STORE = 2
+INN_BELETAG = '5902025531'
 
 logging.basicConfig(
     filename=os.environ.get('Temp') + '\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime(
@@ -135,6 +136,19 @@ def make_env(i_token: str = '') -> None:
         f_env.write(o_token)
         # f_env.write('\n')
 
+def send_token_to_site(token: str = ''):
+    """
+    функция отправки токена на сайт бельетаж
+    им тоже нужен
+    :param token:
+    :return:
+    """
+    params = []
+    params.append(token)
+    url = conf_token('url_beletag')
+    r = requests.post(url=url, json=params)
+    logging.debug('токен отправлен на сайт бельетаж ' + r.text)
+
 
 def copy_env():
     pass
@@ -148,6 +162,9 @@ def main():
         print('пошли дальше')
         print(i_honest_sign.token)
         make_env(i_token=i_honest_sign.token)
+        if inn == INN_BELETAG:
+            # отправка токена на сайт бельетажа, им тоже надо чипы проверять
+            send_token_to_site(token=i_honest_sign.token)
         write_path = '\\\\shoprsync\\rsync\\script_py\\'
         file_to_copy = 'token.env'
         new_name_file = '.env'
