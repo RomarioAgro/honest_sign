@@ -28,7 +28,6 @@ class InnToCode:
                     i_list.append(match_code[0].strip('\"'))
                     i_dict[match_inn[0].strip('\"')] = i_list
         self.dict_inn_code = i_dict
-        self.dict_inn_code = {'6679157644': 'EM'}
 
 
 def main():
