@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import shutil
@@ -47,6 +48,7 @@ def copy_file_to_folders(i_file: str = '', i_path: str = '', subfolder_list: lis
                 new_file = os.path.basename(i_file)
                 shutil.copy(i_file, full_path+os.path.basename(f_new_name))
                 print(full_path)
+                logging.debug(full_path)
 
 def make_subfolder(root_folder:str = 'R:\\', top_folders:list = [], sub_folder:str = '__', ):
     """

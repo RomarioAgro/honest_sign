@@ -117,10 +117,18 @@ class GetTokenHonestSign:
         }
         url = 'https://ismp.crpt.ru/api/v3/auth/cert/'
         data = json.dumps(i_dict)
-        r = requests.post(url=url, data=data, headers=headers)
-        logging.debug(r.text)
-
-        return r.json()['token']
+        try:
+            r = requests.post(url=url, data=data, headers=headers)
+            logging.debug(r.text)
+        except Exception as exc:
+            logging.debug(exc)
+            logging.debug(r.status_code)
+        if r.status_code == 200:
+            i_token = r.json()['token']
+        else:
+            i_token = ''
+        logging.debug('ПОЛУЧИЛИ ТОКЕН: ' + i_token + '*' * 20)
+        return i_token
 
 
 def make_env(i_token: str = '') -> None:
@@ -158,6 +166,7 @@ def main():
     inn_to_code = InnToCode()
     inn_to_code.read_f_make_inn_code_sklad()
     for inn, code_sklad in inn_to_code.dict_inn_code.items():
+        logging.debug('ЗАШЛИ В ИНН: ' + inn)
         i_honest_sign = GetTokenHonestSign(org_inn=inn, org_sklad=code_sklad)
         print('пошли дальше')
         print(i_honest_sign.token)
