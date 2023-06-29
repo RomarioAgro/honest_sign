@@ -9,10 +9,14 @@ from typing import Any
 from decouple import config as conf_token
 import copy_env_to_script_py
 from honest_sign_list_org import InnToCode
+import socket
+import telebot
+import getpass
 
-# TODO предусмотри отправку ошибок в телеграм
+
 CAPICOM_LOCAL_MACHINE_STORE = 2
 INN_BELETAG = '5902025531'
+
 
 logging.basicConfig(
     filename=os.environ.get('Temp') + '\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime(
@@ -31,10 +35,11 @@ class GetTokenHonestSign:
         и серийник сертификата
         """
         try:
-            url = 'https://ismp.crpt.ru/api/v3/auth/cert/key'
+            url = 'https://markirovka.crpt.ru/api/v3/true-api/auth/key'
             r = requests.get(url=url)
         except Exception as exc:
             logging.debug(exc)
+            send_telegram(error_text=exc)
             exit(99)
         if org_sklad is None:
             org_sklad = []
@@ -80,12 +85,14 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 100 проблема с плагином криптопро')
+            send_telegram(error_text=exc)
             exit(100)
         try:
             oSigner.Certificate = self.getSignerCertificate()
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 101 проблема с сертификатом')
+            send_telegram(error_text=exc)
             self.error = True
             return 'error'
         try:
@@ -93,16 +100,19 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 102 проблема с подписью данных')
+            send_telegram(error_text=exc)
             # exit(102)
         logging.debug(oSigner)
         logging.debug(oSignedData)
         oSigner.Options = capicom_certificate_include_end_entity_only
         oSignedData.Content = self.data
+        out_data = ''
         try:
             out_data = oSignedData.SignCades(oSigner, cades_bes, False, capicom_encode_base64)
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 103')
+            send_telegram(error_text='{0}'.format(exc))
             # exit(103)
         out_data3 = out_data.replace('\r\n', '')
         return out_data3
@@ -115,7 +125,7 @@ class GetTokenHonestSign:
         headers = {
             "content-type": "application/json;charset=UTF-8",
         }
-        url = 'https://ismp.crpt.ru/api/v3/auth/cert/'
+        url = 'https://markirovka.crpt.ru/api/v3/true-api/auth/simpleSignIn'
         data = json.dumps(i_dict)
         try:
             r = requests.post(url=url, data=data, headers=headers)
@@ -161,6 +171,25 @@ def send_token_to_site(token: str = ''):
 def copy_env():
     pass
 
+def send_telegram(error_text: str = 'not error'):
+    """
+    функция отправки ошибок в телеграм в общий чат
+    :param error_text:
+    :return:
+    """
+    f_name = socket.gethostname().upper()
+    my_dict = {
+        'shop': f_name,
+        'text': f'{error_text}'
+    }
+
+    my_bot = telebot.TeleBot(conf_token('tg_token', None))
+    my_bot.send_message(conf_token('tg_id', None), '<b>{0}</b>'.format(my_dict), parse_mode='html')
+    # ниже это id кожина романа, в проде поменять на нужный
+    id_roman = conf_token('tg_roman', None)
+    my_bot.send_message(id_roman, '<b>{0}</b>'.format(my_dict), parse_mode='html')
+
+
 
 def main():
     inn_to_code = InnToCode()
@@ -187,6 +216,7 @@ def main():
             except Exception as exc:
                 logging.debug(exc)
                 logging.debug('error 102')
+                send_telegram(error_text=exc)
                 exit(102)
             try:
                 copy_env_to_script_py.copy_file_to_folders(file_to_copy, write_path, list_folders, sub_dir=sub_dir,
@@ -194,6 +224,7 @@ def main():
             except Exception as exc:
                 logging.debug(exc)
                 logging.debug('error 103')
+                send_telegram(error_text=exc)
                 exit(103)
 
 
