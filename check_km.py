@@ -7,7 +7,20 @@ import logging
 import datetime
 import os
 import re
+import http
+
 os.chdir('d:\\kassa\\script_py\\honest_sign\\')
+
+httpclient_logger = logging.getLogger("http.client")
+def httpclient_logging_patch(level=logging.DEBUG):
+    """Enable HTTPConnection debug logging to the logging framework"""
+    def httpclient_log(*args):
+        httpclient_logger.log(level, " ".join(args))
+    # mask the print() built-in in the http.client module to use
+    # logging instead
+    http.client.print = httpclient_log
+    # enable debugging
+    http.client.HTTPConnection.debuglevel = 1
 
 logging.basicConfig(
     filename='d:\\files\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime('%Y-%m-%d') + '.log',
@@ -40,27 +53,66 @@ class CheckKM:
         метод проверки КМ в честном знаке
         :return:
         """
-        url = 'https://ismp.crpt.ru/api/v4/facade/cis/cis_list'
+        url = 'https://markirovka.crpt.ru/api/v3/true-api/cises/info'
         headers = {
             'Authorization': 'Bearer ' + self.token,
             "content-type": "application/json;charset=UTF-8",
             'accept': '*/*'
         }
-        i_data = {
-            'cises': self.km,
-            'childrenPaging': False
+        i_data = self.km
+        params = {
+            "childsWithBrackets": True
         }
+        logging.debug('заголовки {0}'.format(headers))
+        logging.debug('json {0}'.format(i_data))
         try:
-            r = requests.post(url=url, headers=headers, json=i_data)
+            r = requests.post(url=url, headers=headers, params=params, json=self.km)
         except Exception as exc:
             logging.debug('error ' + str(exc))
             exit(504)
         logging.debug('результат проверки в ЧЗ: {0}'.format(r.text))
         self.status_code = r.status_code
+        print(r.json())
         if r.status_code == 200 and r.text != '{}':
             with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
                 i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
-            inf_about_km = r.json().get(self.km[0], None)
+            inf_about_km = r.json()[0]['cisInfo']
+            self.owner_inn = inf_about_km.get('ownerInn', None)
+            self.status_km = inf_about_km.get('status', None)
+            self.answer = r.json()
+        else:
+            logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
+            exit(400)
+
+    def check_water(self) -> None:
+        """
+        метод проверки КМ в честном знаке
+        :return:
+        """
+        url = 'https://markirovka.crpt.ru/api/v3/true-api/cises/short/list'
+        headers = {
+            'Authorization': 'Bearer ' + self.token,
+            "content-type": "application/json",
+            'accept': '*/*'
+        }
+        i_data = {
+            'cis': self.km[0]
+        }
+        j_data = json.dumps(self.km)
+        logging.debug('заголовки {0}'.format(headers))
+        logging.debug('json {0}'.format(i_data))
+        try:
+            r = requests.post(url=url, headers=headers, data=j_data)
+        except Exception as exc:
+            logging.debug('error ' + str(exc))
+            exit(504)
+        logging.debug('результат проверки в ЧЗ: {0}'.format(r.text))
+        self.status_code = r.status_code
+        print(r.json())
+        if r.status_code == 200 and r.text != '{}':
+            with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
+                i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
+            inf_about_km = r.json()[0]['result']
             self.owner_inn = inf_about_km.get('ownerInn', None)
             self.status_km = inf_about_km.get('status', None)
             self.answer = r.json()
@@ -144,6 +196,7 @@ def main():
     logging.debug('создали объект ')
     try:
         o_check.check_km()
+        # o_check.check_water()
     except Exception as exc:
         logging.debug('error ' + str(exc))
     logging.debug('проверили км ')
