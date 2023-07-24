@@ -82,7 +82,7 @@ class CheckKM:
             self.answer = r.json()
         else:
             logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
-            exit(400)
+            exit(r.status_code)
 
     def check_water(self) -> None:
         """
