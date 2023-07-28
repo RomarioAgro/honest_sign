@@ -133,6 +133,7 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug(r.status_code)
+            send_telegram(error_text=exc)
         if r.status_code == 200:
             i_token = r.json()['token']
         else:
