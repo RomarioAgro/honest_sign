@@ -39,10 +39,11 @@ class GetTokenHonestSign:
             r = requests.get(url=url)
         except Exception as exc:
             logging.debug(exc)
-            send_telegram(error_text=exc)
+            send_telegram(error_text='{0}'.format(exc))
             exit(99)
         if org_sklad is None:
             org_sklad = []
+        self.org = ''
         self.uuid = r.json()['uuid']
         self.data = r.json()['data']
         self.inn = org_inn
@@ -50,6 +51,7 @@ class GetTokenHonestSign:
         # self.serial_sert = conf_token('serial_number', default=None)
         self.error = False
         self.signed_string = self.get_signed_string()
+
         if not self.error:
             self.token = self.get_token()
         else:
@@ -63,8 +65,12 @@ class GetTokenHonestSign:
         """
         oStore = win32com.client.Dispatch("CAdESCOM.Store")
         oStore.Open(CAPICOM_LOCAL_MACHINE_STORE)
+        pattern = 'CN='
         for elem in oStore.Certificates:
+            sert_subject = elem.SubjectName
+            list_sert_subject = sert_subject.split(', ')
             if self.inn in elem.SubjectName:
+                self.org = [x for x in list_sert_subject if x.find(pattern) >= 0][0].replace(pattern, '')
                 return elem
         o_error = 'нет подходящего сертификата для организации с ИНН: ' + self.inn
         logging.debug(o_error)
@@ -85,14 +91,14 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 100 проблема с плагином криптопро')
-            send_telegram(error_text=exc)
+            send_telegram(error_text='инн={1}, ошибка={0}'.format(exc, self.inn))
             exit(100)
         try:
             oSigner.Certificate = self.getSignerCertificate()
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 101 проблема с сертификатом')
-            send_telegram(error_text=exc)
+            send_telegram(error_text='инн={1}, орг={2}, ошибка={0}'.format(exc, self.inn, self.org))
             self.error = True
             return 'error'
         try:
@@ -100,7 +106,7 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 102 проблема с подписью данных')
-            send_telegram(error_text=exc)
+            send_telegram(error_text='инн={1}, ошибка={0}'.format(exc, self.inn))
             # exit(102)
         logging.debug(oSigner)
         logging.debug(oSignedData)
@@ -112,7 +118,7 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug('error 103')
-            send_telegram(error_text='{0}'.format(exc))
+            send_telegram(error_text='инн={1}, ошибка={0}'.format(exc, self.inn))
             # exit(103)
         out_data3 = out_data.replace('\r\n', '')
         return out_data3
@@ -133,12 +139,13 @@ class GetTokenHonestSign:
         except Exception as exc:
             logging.debug(exc)
             logging.debug(r.status_code)
-            send_telegram(error_text=exc)
+            send_telegram(error_text='орг={0}, инн={1}, ошибка получения токена'.format(self.org, self.inn))
         if r.status_code == 200:
             i_token = r.json()['token']
         else:
             i_token = ''
-        logging.debug('ПОЛУЧИЛИ ТОКЕН: ' + i_token + '*' * 20)
+        logging.debug('орг={org}, ПОЛУЧИЛИ ТОКЕН: {token}'.format(org=self.org,
+                                                                  token=i_token))
         return i_token
 
 
@@ -217,7 +224,7 @@ def main():
             except Exception as exc:
                 logging.debug(exc)
                 logging.debug('error 102')
-                send_telegram(error_text=exc)
+                send_telegram(error_text='{0}'.format(exc))
                 exit(102)
             try:
                 copy_env_to_script_py.copy_file_to_folders(file_to_copy, write_path, list_folders, sub_dir=sub_dir,
@@ -225,7 +232,7 @@ def main():
             except Exception as exc:
                 logging.debug(exc)
                 logging.debug('error 103')
-                send_telegram(error_text=exc)
+                send_telegram(error_text='{0}'.format(exc))
                 exit(103)
 
 
