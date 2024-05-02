@@ -46,7 +46,6 @@ class CheckKM:
         self.status_km = ''
         self.answer = None
         self.status_code = None
-        logging.debug(i_dict_km)
 
     def check_km(self) -> None:
         """
@@ -63,10 +62,9 @@ class CheckKM:
         params = {
             "childsWithBrackets": True
         }
-        logging.debug('заголовки {0}'.format(headers))
         logging.debug('json {0}'.format(i_data))
         try:
-            r = requests.post(url=url, headers=headers, params=params, json=self.km)
+            r = requests.post(url=url, headers=headers, params=params, json=self.km, timeout=30)
         except Exception as exc:
             logging.debug('error ' + str(exc))
             exit(504)
@@ -99,7 +97,6 @@ class CheckKM:
             'cis': self.km[0]
         }
         j_data = json.dumps(self.km)
-        logging.debug('заголовки {0}'.format(headers))
         logging.debug('json {0}'.format(i_data))
         try:
             r = requests.post(url=url, headers=headers, data=j_data)
