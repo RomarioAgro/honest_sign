@@ -29,7 +29,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(filename)s - %(funcName)s: %(lineno)d - %(message)s",
     datefmt='%H:%M:%S')
-
+# сопоставление юзеров компа и сбис
 USER_SBIS = {
     'kassir1': "КАССИР1",
     'kassir2': "КАССИР2",
