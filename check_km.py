@@ -8,6 +8,7 @@ import datetime
 import os
 import re
 import http
+import getpass
 
 os.chdir('d:\\kassa\\script_py\\honest_sign\\')
 
@@ -29,6 +30,13 @@ logging.basicConfig(
     format="%(asctime)s - %(filename)s - %(funcName)s: %(lineno)d - %(message)s",
     datefmt='%H:%M:%S')
 
+USER_SBIS = {
+    'kassir1': "КАССИР1",
+    'kassir2': "КАССИР2",
+    'kassir3': "КАССИР3",
+    'kassir4': "КАССИР4",
+    'kassir5': "КАССИР5"
+}
 
 class CheckKM:
     """
@@ -128,10 +136,10 @@ class CheckKM:
         if self.status_code != 200:
             return self.status_code
         if self.operation == 'status':
-            # запрос status может быть у 1000 кодов
+            # запрос status переделан под 1 код
             # и надо сохранить все в файл
             self.save_answer()
-            return 0
+            return 99  #результат сохранен в файл и кассовое ПО должно этот файл прочитать и сообщить ответ
         if self.inn == self.owner_inn:
             # это если запрос индивидуальынй по одному коду
             if self.operation == 'sale' and self.status_km == 'INTRODUCED':  #  "продажа" и статус "в обороте"
@@ -155,13 +163,14 @@ class CheckKM:
         :return:
         """
         list_str = []
-        with open('r:\\status_KI_all.txt', 'a') as o_file:
+
+        f_name = 'status_KI_' + USER_SBIS.get(getpass.getuser(), "кассир1") + '.txt'
+        with open('r:\\' + f_name, 'w') as o_file:
             for km in self.answer:
-                if self.answer[km]['status'] != 'INTRODUCED' or self.answer[km]['ownerInn'] != self.inn:
-                    list_str.append(km)
-                    list_str.append(self.answer[km]['status'])
-                    list_str.append(self.answer[km]['ownerInn'])
-                    list_str.append(self.answer[km]['ownerName'])
+                if km['cisInfo']['status'] != 'INTRODUCED' or km['cisInfo']['ownerInn'] != self.inn:
+                    list_str.append(km['cisInfo']['status'])
+                    list_str.append(km['cisInfo']['ownerInn'])
+                    list_str.append(km['cisInfo']['ownerName'])
                     list_str.append('\n')
                     o_str = ';'.join(list_str)
                     o_file.write(o_str)
