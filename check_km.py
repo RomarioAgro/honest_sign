@@ -167,14 +167,13 @@ class CheckKM:
         f_name = 'status_KI_' + USER_SBIS.get(getpass.getuser(), "кассир1") + '.txt'
         with open('r:\\' + f_name, 'w') as o_file:
             for km in self.answer:
-                if km['cisInfo']['status'] != 'INTRODUCED' or km['cisInfo']['ownerInn'] != self.inn:
-                    list_str.append(km['cisInfo']['status'])
-                    list_str.append(km['cisInfo']['ownerInn'])
-                    list_str.append(km['cisInfo']['ownerName'])
-                    list_str.append('\n')
-                    o_str = ';'.join(list_str)
-                    o_file.write(o_str)
-                    list_str.clear()
+                list_str.append(km['cisInfo']['status'])
+                list_str.append(km['cisInfo']['ownerInn'])
+                list_str.append(km['cisInfo']['ownerName'])
+                list_str.append('\n')
+                o_str = ';'.join(list_str)
+                o_file.write(o_str)
+                list_str.clear()
 
 def preparation_km(in_km: List[str]) -> List[str]:
     """
