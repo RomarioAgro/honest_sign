@@ -276,7 +276,8 @@ def main():
         new_name_file = '.env'
         sub_dir = 'honest_sign'
         # list_folders = os.listdir(write_path)
-        if not token_dict.get('token_pm', None):
+        logging.debug(f'словарь токенов = {token_dict}')
+        if token_dict.get('token_pm', None):
             list_folders = code_sklad
             try:
                 copy_env_to_script_py.make_subfolder(root_folder=write_path, top_folders=list_folders,
