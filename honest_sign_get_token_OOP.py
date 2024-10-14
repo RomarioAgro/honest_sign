@@ -194,7 +194,7 @@ def make_env(tokens, mode: str = 'w') -> None:
     :param i_token:
     :return:
     """
-    with open('token.env', mode) as f_env:
+    with open('token.env', mode, encoding="utf-8") as f_env:
         for key, value in tokens.items():
             # Записываем в список каждую пару "ключ = значение"
             f_env.write(f'{key} = {value}\n')
@@ -254,7 +254,7 @@ def make_token_dict(inn, code_sklad, auth_data) -> Dict:
     tokens['org'] = i_honest_sign.org
     tokens['inn'] = i_honest_sign.inn
     tokens['url_crpt'] = f"{config['crpt_prod']['url']}/api/v3/true-api/auth/permissive-access"
-    tokens['url_cdn_info'] = f"{config['crpt_prod']['url_cdn_info']}/api/v3/true-api/auth/permissive-access"
+    tokens['url_cdn'] = f"{config['crpt_prod']['url_cdn_info']}/cdn/info"
     tokens['token_full'] = i_honest_sign.get_token()
     tokens['token_pm'] = i_honest_sign.get_token_permission_mode()
     return tokens
