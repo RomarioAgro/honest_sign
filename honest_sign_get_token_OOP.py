@@ -7,7 +7,6 @@ import datetime
 import win32com.client
 import json
 from typing import Any, Dict
-from decouple import config as conf_token
 import copy_env_to_script_py
 from honest_sign_list_org import InnToCode
 import socket
@@ -60,7 +59,6 @@ class GetTokenHonestSign:
         self.data = i_data
         self.inn = org_inn
         self.destination_folder = org_sklad
-        # self.serial_sert = conf_token('serial_number', default=None)
         self.error = False
         self.signed_string = self.get_signed_string()
         self.permission_mode_token = None
@@ -209,7 +207,7 @@ def send_token_to_site(token: str = ''):
     """
     params = []
     params.append(token)
-    url = conf_token('url_beletag')
+    url = config['beletag']['url']
     r = requests.post(url=url, json=params)
     logging.debug('токен отправлен на сайт бельетаж ' + r.text)
 
@@ -230,10 +228,10 @@ def send_telegram(error_text: str = 'not error'):
         'text': f'{error_text}'
     }
 
-    my_bot = telebot.TeleBot(conf_token('tg_token', None))
-    my_bot.send_message(conf_token('tg_id', None), '<b>{0}</b>'.format(my_dict), parse_mode='html')
+    my_bot = telebot.TeleBot(config['telegram']['tg_token'])
+    my_bot.send_message(config['telegram']['tg_id'], '<b>{0}</b>'.format(my_dict), parse_mode='html')
     # ниже это id кожина романа, в проде поменять на нужный
-    id_roman = conf_token('tg_roman', None)
+    id_roman = config['telegram']['tg_roman']
     my_bot.send_message(id_roman, '<b>{0}</b>'.format(my_dict), parse_mode='html')
 
 
@@ -253,10 +251,11 @@ def make_token_dict(inn, code_sklad, auth_data) -> Dict:
     tokens['description'] = f"file .env make in comp {os.environ['COMPUTERNAME']}"
     tokens['org'] = i_honest_sign.org
     tokens['inn'] = i_honest_sign.inn
-    tokens['url_crpt'] = f"{config['crpt_prod']['url']}/api/v3/true-api/auth/permissive-access"
-    tokens['url_cdn'] = f"{config['crpt_prod']['url_cdn_info']}/cdn/info"
+    tokens['url_crpt'] = "https://markirovka.crpt.ru"
+    tokens['url_cdn_info'] = "https://cdn.crpt.ru"
     tokens['token_full'] = i_honest_sign.get_token()
     tokens['token_pm'] = i_honest_sign.get_token_permission_mode()
+    tokens['path_result_checking'] = "d:\\files\\"
     return tokens
 
 
