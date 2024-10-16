@@ -1,7 +1,6 @@
 """
 получаем cdn площадку для проверки КМ в разрешительном режиме
 """
-import configparser
 import logging
 import datetime
 import os
@@ -23,11 +22,6 @@ logging.basicConfig(
 logger_cdn: logging.Logger = logging.getLogger(__name__)
 logger_cdn.setLevel(logging.DEBUG)
 
-
-# Создание объекта конфигурации
-config = configparser.ConfigParser()
-path_to_ini = os.path.dirname(os.path.abspath(__file__))
-config.read(path_to_ini + '//config.ini')
 # читаем наш токен
 path_to_env = os.path.dirname(os.path.abspath(__file__))
 config_hs = Config(RepositoryEnv(path_to_env + '//.env'))
@@ -43,7 +37,6 @@ def get_cdn(token: str = '') -> List|None:
         "Content-Type": "application/json",
         "X-API-KEY": token
     }
-    # url = config['crpt_prod']['url_cdn_info'] + '/api/v4/true-api/cdn/info'
     url = config_hs('url_cdn_info') + '/api/v4/true-api/cdn/info'
     try:
         response = requests.get(url, headers=headers)
@@ -77,7 +70,7 @@ def check_cdn_health(cdn_url, token) -> float:
         end_time = time.time()
         if response.status_code == 200:
             latency = (end_time - start_time) * 1000  # Время в мс
-            logger_cdn.debug(f'померели время {latency}')
+            logger_cdn.debug(f'померили время {latency}')
             return latency
         return float('inf')  # Если ошибка, ставим максимальное значение
     except Exception as e:
