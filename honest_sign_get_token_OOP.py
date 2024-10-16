@@ -256,6 +256,7 @@ def make_token_dict(inn, code_sklad, auth_data) -> Dict:
     tokens['token_full'] = i_honest_sign.get_token()
     tokens['token_pm'] = i_honest_sign.get_token_permission_mode()
     tokens['path_result_checking'] = "d:\\files\\"
+    logging.debug(f'закончили формировать словарь переменных {tokens}')
     return tokens
 
 
@@ -271,7 +272,9 @@ def main():
         make_env(token_dict, mode='w')
         if inn == INN_BELETAG:
             # отправка токена на сайт бельетажа, им тоже надо чипы проверять
+            logging.debug(f'отправка токена на сайт бельетажа')
             send_token_to_site(token=token_dict.get('token_full', None))
+            logging.debug(f'закончили отправку токена на сайт бельетажа')
         write_path = '\\\\shoprsync\\rsync\\script_py\\'
         file_to_copy = 'token.env'
         new_name_file = '.env'
@@ -295,6 +298,7 @@ def main():
                 logging.debug('error 103')
                 send_telegram(error_text='{0}'.format(exc))
                 exit(103)
+    logging.debug(f'закончили работать')
 
 
 if __name__ == '__main__':
