@@ -43,7 +43,8 @@ def get_cdn(token: str = '') -> List|None:
         "Content-Type": "application/json",
         "X-API-KEY": token
     }
-    url = config['crpt_prod']['url_cdn_info'] + '/api/v4/true-api/cdn/info'
+    # url = config['crpt_prod']['url_cdn_info'] + '/api/v4/true-api/cdn/info'
+    url = config_hs('url_cdn_info') + '/api/v4/true-api/cdn/info'
     try:
         response = requests.get(url, headers=headers)
         logger_cdn.debug(f'получили список cdn {response.text}')
@@ -108,7 +109,13 @@ def main():
     cdn_hosts = get_cdn(token=token)
     if cdn_hosts:
         prioritized_cdns = prioritize_cdns(cdn_hosts, token)
-        return prioritized_cdns[0][0]
+        print("Приоритезированные CDN-площадки по времени отклика:")
+        cdn_list_to_env = config_hs('path_result_checking') + '\\cdn_list.env'
+        index = 0
+        with open(cdn_list_to_env, 'w') as f_env:
+            for cdn, latency in prioritized_cdns:
+                index = index + 1
+                f_env.write(f"CDN{index}: {cdn}\n")
     else:
         return None
 
