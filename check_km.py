@@ -1,27 +1,17 @@
 import requests
-from decouple import config as conf_token
-from typing import List
+from decouple import Config, RepositoryEnv
+from typing import List, Tuple, Dict
 import json
 from sys import argv, exit
 import logging
 import datetime
+import time
 import os
-import re
-import http
-import getpass
-
+import tkinter as tk
+from tkinter import messagebox
+from shtrih.preparation_km_to_honest_sign import preparation_km as km_with_gs
 os.chdir('d:\\kassa\\script_py\\honest_sign\\')
 
-httpclient_logger = logging.getLogger("http.client")
-def httpclient_logging_patch(level=logging.DEBUG):
-    """Enable HTTPConnection debug logging to the logging framework"""
-    def httpclient_log(*args):
-        httpclient_logger.log(level, " ".join(args))
-    # mask the print() built-in in the http.client module to use
-    # logging instead
-    http.client.print = httpclient_log
-    # enable debugging
-    http.client.HTTPConnection.debuglevel = 1
 
 logging.basicConfig(
     filename='d:\\files\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime('%Y-%m-%d') + '.log',
@@ -29,6 +19,11 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(filename)s - %(funcName)s: %(lineno)d - %(message)s",
     datefmt='%H:%M:%S')
+
+# Создание объекта конфигурации
+path_to_env = os.path.dirname(os.path.abspath(__file__))
+config_hs = Config(RepositoryEnv(path_to_env + '\\.env'))
+
 # сопоставление юзеров компа и сбис
 USER_SBIS = {
     'kassir1': "КАССИР1",
@@ -38,22 +33,69 @@ USER_SBIS = {
     'kassir5': "КАССИР5"
 }
 
+
+def show_error_message(errors):
+    root = tk.Tk()
+    root.withdraw()  # Скрываем основное окно
+    # Устанавливаем фокус на окно
+    root.lift()  # Поднять окно над всеми
+    root.focus_force()  # Принудительно установить фокус
+    messagebox.showerror("Ошибка", "\n".join(errors))  # Показываем окно с ошибками
+    root.destroy()  # Закрываем основное окно после показа сообщения
+
+def save_events_to_file(errors: List, name: str = "errors.txt") -> None:
+    """
+    сохранение ошибок проверки КМ в ЧЗ
+    :param errors: list список строк с ошибками
+    :param name: str часть имени файла
+    :return: None
+    """
+    filename = config_hs('path_result_checking', 'd:\\files\\') + os.path.basename(__file__)[:-3] + '_' + name
+    with open(filename, "a", encoding="utf-8") as file:
+        for error in errors:
+            file.write(error + "\n")
+
 class CheckKM:
     """
     конструктор класса проверки КМ в честном знаке
     """
 
-    def __init__(self, f_name: str = '') -> None:
-        with open(f_name, 'r') as rm_file:
-            i_dict_km = json.load(rm_file)
-        self.token = conf_token('token', default=None)
+    def __init__(self, i_dict_km: Dict = {}) -> None:
+        """
+        заходим в клас со словарем кодов маркировки
+        токены он сам читает
+        :param i_dict_km:
+        """
+        self.token = config_hs('token_full', default=None)
+        self.token_pm = config_hs('token_pm', default=None)
         self.km = preparation_km(i_dict_km['km'])
-        self.inn = i_dict_km['inn']
         self.operation = i_dict_km['operation']
-        self.owner_inn = ''
-        self.status_km = ''
+        self.fn = i_dict_km.get('fn', None)
+        self.file_name = i_dict_km.get('rec_name', 'status')
+        self.inn = i_dict_km.get('inn', None)
+        self.url_cdn = self.get_url_cdn()
+        self.owner_inn = None
+        self.status_km = None
         self.answer = None
         self.status_code = None
+
+    def get_url_cdn(self) -> List:
+        """
+        метод получения url cdn, читаем из файла
+        если файла нет, тогда запускаем скрипт который эти урлы получает с ЧЗ
+        :return: List список урлов
+        """
+        path_cdn = config_hs('path_cdn_list', None) + 'cdn_list.json'
+        if not os.path.exists(path_cdn):
+            try:
+                import honest_sign.pm_get_cdn as pm_get_cdn
+            except Exception as exc:
+                logging.debug(f'ошибка импорта модуля {exc}')
+            pm_get_cdn.main()
+        with open(path_cdn, 'r') as f_cdn:
+            cdn_data = json.load(f_cdn)
+        if cdn_data:
+            return cdn_data["cdn_host"]
 
     def check_km(self) -> None:
         """
@@ -90,6 +132,115 @@ class CheckKM:
             logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
             exit(r.status_code)
 
+    def check_km_permission_mode(self):
+        """
+        проверка КМ в ЧЗ разрешительный режим
+        :return:
+        """
+        headers = {
+            'X-API-KEY': self.token_pm,
+            "content-type": "application/json",
+        }
+        param = {
+            "codes": self.km
+        }
+        for base_url in self.url_cdn:
+            url = base_url + '/' + 'api/v4/true-api/codes/check'
+            try:
+                start_time = time.time()
+                r = requests.post(url=url, headers=headers, json=param, timeout=(2, 2))
+                elapsed_time = time.time() - start_time
+                if elapsed_time > 2:
+                    logging.debug(
+                        f'Запрос к {base_url} занял более 2 секунд ({elapsed_time:.2f} секунд), переходим к следующему URL.')
+                    continue
+                logging.debug(f'результат запроса статуса КМ={r.text}')
+                # Проверка успешного ответа
+                if r.status_code == 200:
+                    logging.debug(f'Успешный ответ от {base_url}: {r.text}')
+                    print(r.text)
+                    self.answer = r.json()
+                    return True
+            # Проверка кода 429 или 5xx
+                elif r.status_code == 429:
+                    logging.debug(f'Код 429 (Too Many Requests) от {base_url}, переходим к следующему URL.')
+                elif 500 <= r.status_code < 600:
+                    logging.debug(f'Код {r.status_code} от {base_url}, ошибка сервера, переходим к следующему URL.')
+                else:
+                    logging.debug(f'Неожиданный код ответа {r.status_code} от {base_url}, ответ: {r.text}')
+
+            except requests.Timeout:
+                logging.debug(f'Запрос к {base_url} превысил тайм-аут 1.5 секунд, переходим к следующему URL.')
+
+            except requests.RequestException as e:
+                logging.debug(f'Ошибка при запросе к {base_url}: {e}, переходим к следующему URL.')
+        logging.debug('Не удалось получить успешный ответ ни от одного из URL.')
+        self.answer = None
+
+
+    def pm_show_errors_honest_sign(self) -> Tuple:
+        """
+        разбираем ответ честного знака про наши КМ
+        вывод ошибки для пользователя,
+        сохранение их в текст файл
+        :return: tuple код ошибки, id запроса, время запроса
+        """
+        data = self.answer
+        errors = []
+        f_name = self.file_name + '_goods_km.txt'
+        # Проверка каждого кода и вывод сообщения, если условия выполняются
+        logging.debug(f'зашли в показ ошибок')
+        if not data:
+            self.status_code = 1
+            errors.append('Не удалось получить успешный ответ ни от одного из URL\n ни один КМ не проверен')
+        else:
+            for code_info in data["codes"]:
+                if not code_info.get("found", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n не найден в ЧЗ")
+                if not code_info.get("utilised", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n в ЧЗ нет информации о нанесении кода")
+                if not code_info.get("verified", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n не подтвержден, пересканируйте код")
+                if code_info.get("sold", False)\
+                        and self.operation == 'sale':
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n продан, выбыл из оборота")
+                if not code_info.get("sold", False) \
+                        and self.operation == 'return_sale':
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n не продан, не выбывал из оборота")
+                if self.operation == 'status':
+                    if code_info.get("sold", False):
+                        # будем считать что 0 это продан
+                        self.status_code = 0
+                        errors.append(f"Код {code_info['cis']}:\n продан, выбыл из оборота")
+                    else:
+                        # будем считать что 2 это возвращен
+                        self.status_code = 2
+                        errors.append(f"Код {code_info['cis']}:\n не продан, не выбывал из оборота")
+                if code_info.get("isBlocked", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
+                if not code_info.get("realizable", True) \
+                        and not code_info.get("sold", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n нет информации о вводе кода в оборот")
+                if not code_info.get("isOwner", True):
+                    self.status_code = 1
+                    errors.append(f"Код {code_info['cis']}:\n ваш ИНН и ИНН владельца кода не совпадают")
+        if errors:
+            # Вывод ошибки на экран для пользователя
+            f_name = self.file_name + '_errors_km.txt'
+            show_error_message(errors)
+        else:
+            self.status_code = 0
+            errors.append(f"{self.answer['reqId']};{self.answer['reqTimestamp']}")
+        save_events_to_file(errors, name=f_name)
+        return self.status_code, self.answer['reqId'], self.answer['reqTimestamp']
+
     def check_water(self) -> None:
         """
         метод проверки КМ в честном знаке
@@ -125,55 +276,6 @@ class CheckKM:
             logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
             exit(400)
 
-    def verdict(self) -> int:
-        """
-        метод возврата результата проверки,
-        возвращаем цифровые коды, сбис потом будет их
-        идентифицировать
-        :return:
-        """
-        # если по какой-либо причине проверка не удалась
-        if self.status_code != 200:
-            return self.status_code
-        if self.operation == 'status':
-            # запрос status переделан под 1 код
-            # и надо сохранить все в файл
-            self.save_answer()
-            return 99  #результат сохранен в файл и кассовое ПО должно этот файл прочитать и сообщить ответ
-        if self.inn == self.owner_inn:
-            # это если запрос индивидуальынй по одному коду
-            if self.operation == 'sale' and self.status_km == 'INTRODUCED':  #  "продажа" и статус "в обороте"
-                return 0  # ошибок нет
-            if self.operation == 'return_sale' and self.status_km == 'RETIRED':  #  "возврат" и статус "выбыл"
-                return 0  # ошибок нет
-            if self.operation == 'sale' and self.status_km != 'INTRODUCED':  #  "продажа" и статус не совпадает с "в обороте"
-                logging.debug('операция из сбис: {0}, статус в ЧЗ ЧЗ: {1}'.format(self.operation, self.status_km))
-                return 101  # ошибка надо прерывать операцию
-            if self.operation == 'return_sale' and self.status_km != 'RETIRED':  #  "возврат" и статус не равен "выбыл"
-                logging.debug('операция из сбис: {0}, статус в ЧЗ ЧЗ: {1}'.format(self.operation, self.status_km))
-                return 102  #  ошибка надо прерывать операцию
-            return 103  #  неизвестная ошибка
-        else:
-            logging.debug('инн из сбис: {0}, инн из ЧЗ: {1}'.format(self.inn, self.owner_inn))
-            return 100  #  если у нас даже ИНН продавца и владельца не совпадают, то ваще кранты
-
-    def save_answer(self) -> None:
-        """
-        метод сохранения результата запроса в текстовый файл
-        :return:
-        """
-        list_str = []
-
-        f_name = 'status_KI_' + USER_SBIS.get(getpass.getuser(), "кассир1") + '.txt'
-        with open('r:\\' + f_name, 'w') as o_file:
-            for km in self.answer:
-                list_str.append(km['cisInfo']['status'])
-                list_str.append(km['cisInfo']['ownerInn'])
-                list_str.append(km['cisInfo']['ownerName'])
-                list_str.append('\n')
-                o_str = ';'.join(list_str)
-                o_file.write(o_str)
-                list_str.clear()
 
 def preparation_km(in_km: List[str]) -> List[str]:
     """
@@ -183,30 +285,37 @@ def preparation_km(in_km: List[str]) -> List[str]:
     :return: list
     pattern нам нужно совпадение после 30 символа
     """
-    pattern = r'91\S+92'
     out_km = []
     for elem in in_km:
-        list_break_pattern = re.split(pattern, elem[30:])
-        out_km.append(elem[:30] + list_break_pattern[0])
+        out_km.append(km_with_gs(in_km=elem))
     return out_km
+
+def make_dict_km(f_name: str = '') -> Dict:
+    """
+    читаем наш json с кодами маркировки на продажу
+    :param f_name: путь до файла
+    :return: Dict словарь наших КМов
+    """
+    with open(f_name, 'r') as rm_file:
+        i_dict_km = json.load(rm_file)
+    return i_dict_km
 
 def main():
     logging.debug('начало ')
     logging.debug(argv)
+    my_dict_km = make_dict_km(f_name=argv[1])
     try:
-        o_check = CheckKM(f_name=argv[1])
+        o_check = CheckKM(i_dict_km=my_dict_km)
     except Exception as exc:
         logging.debug('error ' + str(exc))
         return 401
     logging.debug('создали объект ')
-    try:
-        o_check.check_km()
-        # o_check.check_water()
-    except Exception as exc:
-        logging.debug('error ' + str(exc))
-    logging.debug('проверили км ')
-    o_exit = o_check.verdict()
-    return o_exit
+    # o_check.check_km()
+    o_check.check_km_permission_mode()
+    o_exit = o_check.pm_show_errors_honest_sign()
+    logging.debug(f'проверили км {o_exit}')
+    print(o_exit)
+    return o_exit[0]
 
 
 if __name__ == '__main__':
