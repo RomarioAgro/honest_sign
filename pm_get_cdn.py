@@ -8,6 +8,7 @@ import requests
 from decouple import Config, RepositoryEnv
 import time
 from typing import List
+import json
 
 
 current_time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H_%M_%S')
@@ -96,6 +97,22 @@ def prioritize_cdns(cdn_hosts: List, token: str) -> List:
     logger_cdn.debug(f'осортировали cdn площадки')
     return sorted_cdns
 
+def save_cdn_list_env(cdn_list: List = None, f_name: str = 'cdn_list'):
+    cdn_list_to_env = config_hs('path_cdn_list') + '\\' + f_name + '.env'
+    index = 0
+    with open(cdn_list_to_env, 'w') as f_env:
+        for cdn, latency in cdn_list:
+            index = index + 1
+            f_env.write(f"CDN{index}: {cdn}\n")
+
+def save_cdn_list_json(cdn_list: List = None, f_name: str = 'cdn_list'):
+    cdn_list_to_json = config_hs('path_cdn_list') + '\\' + f_name + '.json'
+    cdn_hosts = [item[0] for item in cdn_list]
+    cdn_data = {
+        "cdn_host": cdn_hosts
+    }
+    with open(cdn_list_to_json, "w") as json_file:
+        json.dump(cdn_data, json_file, indent=4)
 
 def main():
     token = config_hs('token_pm', default=None)
@@ -103,12 +120,9 @@ def main():
     if cdn_hosts:
         prioritized_cdns = prioritize_cdns(cdn_hosts, token)
         print("Приоритезированные CDN-площадки по времени отклика:")
-        cdn_list_to_env = config_hs('path_result_checking') + '\\cdn_list.env'
-        index = 0
-        with open(cdn_list_to_env, 'w') as f_env:
-            for cdn, latency in prioritized_cdns:
-                index = index + 1
-                f_env.write(f"CDN{index}: {cdn}\n")
+        save_cdn_list_json(cdn_list=prioritized_cdns, f_name='cdn_list')
+        save_cdn_list_env(cdn_list=prioritized_cdns, f_name='cdn_list')
+        print(prioritized_cdns)
     else:
         return None
 
