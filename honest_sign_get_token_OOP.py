@@ -256,6 +256,7 @@ def make_token_dict(inn, code_sklad, auth_data) -> Dict:
     tokens['token_full'] = i_honest_sign.get_token()
     tokens['token_pm'] = i_honest_sign.get_token_permission_mode()
     tokens['path_result_checking'] = "d:\\files\\"
+    tokens['path_cdn_list'] = "d:\\work\\"
     logging.debug(f'закончили формировать словарь переменных {tokens}')
     return tokens
 
