@@ -10,7 +10,6 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from shtrih.preparation_km_to_honest_sign import preparation_km as km_with_gs
-os.chdir('d:\\kassa\\script_py\\honest_sign\\')
 
 
 logging.basicConfig(
