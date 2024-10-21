@@ -1,3 +1,5 @@
+import sys
+
 import requests
 from decouple import Config, RepositoryEnv
 from typing import List, Tuple, Dict
@@ -10,6 +12,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from shtrih.preparation_km_to_honest_sign import preparation_km as km_with_gs
+import importlib
 
 
 logging.basicConfig(
@@ -106,6 +109,8 @@ class CheckKM:
             if t_diff > 21599:
                 just_do_it = True
         if just_do_it:
+            path_to_import = os.path.dirname(os.path.abspath(__file__))
+            sys.path.append(path_to_import)
             try:
                 import pm_get_cdn
             except Exception as exc:
