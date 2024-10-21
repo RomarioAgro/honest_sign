@@ -85,16 +85,33 @@ class CheckKM:
         :return: List список урлов
         """
         path_cdn = config_hs('path_cdn_list', None) + 'cdn_list.json'
-        if not os.path.exists(path_cdn):
-            try:
-                import honest_sign.pm_get_cdn as pm_get_cdn
-            except Exception as exc:
-                logging.debug(f'ошибка импорта модуля {exc}')
-            pm_get_cdn.main()
+        self.prepare_cdn_file(path_cdn)
         with open(path_cdn, 'r') as f_cdn:
             cdn_data = json.load(f_cdn)
         if cdn_data:
             return cdn_data["cdn_host"]
+
+    def prepare_cdn_file(self, path_cdn):
+        """
+        метод подготовки файла со списком cdn хостов
+        path_cdn: str путь до файла со списком cdn хостов
+        :return: None
+        """
+        just_do_it = False
+        # если cdn списка нет или он устарел, тогда создаем новый
+        if not os.path.exists(path_cdn):
+            just_do_it = True
+        else:
+            t_diff = time.time() - os.path.getctime(path_cdn)
+            if t_diff > 21599:
+                just_do_it = True
+        if just_do_it:
+            try:
+                import pm_get_cdn
+            except Exception as exc:
+                logging.debug(f'ошибка импорта модуля {exc}')
+            pm_get_cdn.main()
+
 
     def check_km(self) -> None:
         """
