@@ -105,7 +105,7 @@ class CheckKM:
         if not os.path.exists(path_cdn):
             just_do_it = True
         else:
-            t_diff = time.time() - os.path.getctime(path_cdn)
+            t_diff = time.time() - os.path.getmtime(path_cdn)
             if t_diff > 21599:
                 just_do_it = True
         if just_do_it:
@@ -171,10 +171,6 @@ class CheckKM:
                 start_time = time.time()
                 r = requests.post(url=url, headers=headers, json=param, timeout=(2, 2))
                 elapsed_time = time.time() - start_time
-                if elapsed_time > 2:
-                    logging.debug(
-                        f'Запрос к {base_url} занял более 2 секунд ({elapsed_time:.2f} секунд), переходим к следующему URL.')
-                    continue
                 logging.debug(f'результат запроса статуса КМ={r.text}')
                 # Проверка успешного ответа
                 if r.status_code == 200:
@@ -189,7 +185,10 @@ class CheckKM:
                     logging.debug(f'Код {r.status_code} от {base_url}, ошибка сервера, переходим к следующему URL.')
                 else:
                     logging.debug(f'Неожиданный код ответа {r.status_code} от {base_url}, ответ: {r.text}')
-
+                if elapsed_time > 2:
+                    logging.debug(
+                        f'Запрос к {base_url} занял более 2 секунд ({elapsed_time:.2f} секунд), переходим к следующему URL.')
+                    continue
             except requests.Timeout:
                 logging.debug(f'Запрос к {base_url} превысил тайм-аут 1.5 секунд, переходим к следующему URL.')
 
