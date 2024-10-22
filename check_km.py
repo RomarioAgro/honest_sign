@@ -215,6 +215,13 @@ class CheckKM:
             errors.append('Не удалось получить успешный ответ ни от одного из URL\n ни один КМ не проверен')
         else:
             for code_info in data["codes"]:
+                exp_date_str = code_info.get("expireDate", None)
+                if exp_date_str:
+                    exp_date = datetime.datetime.strptime(exp_date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+                    current_time = datetime.datetime.utcnow()
+                    if exp_date < current_time:
+                        self.status_code = 1
+                        errors.append(f"Код {code_info['cis']}:\n истек срок годности товара")
                 if not code_info.get("found", True):
                     self.status_code = 1
                     errors.append(f"Код {code_info['cis']}:\n не найден в ЧЗ")
