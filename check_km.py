@@ -250,43 +250,43 @@ class CheckKM:
                     current_time = datetime.datetime.utcnow()
                     if exp_date < current_time:
                         self.status_code = 1
-                        errors.append(f"Код\n{code_info['cis']}:\n истек срок годности товара")
+                        errors.append(f"Код\n{code_info['cis']}\n истек срок годности товара")
                 if not code_info.get("found", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n не найден в ЧЗ")
+                    errors.append(f"Код\n{code_info['cis']}\n не найден в ЧЗ")
                 if not code_info.get("utilised", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n в ЧЗ нет информации о нанесении кода")
+                    errors.append(f"Код\n{code_info['cis']}\n в ЧЗ нет информации о нанесении кода")
                 if not code_info.get("verified", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n не подтвержден, пересканируйте код")
+                    errors.append(f"Код\n{code_info['cis']}\n не подтвержден, переключите на АНГЛИЙСКИЙ ЯЗЫК\nпересканируйте код")
                 if code_info.get("sold", False)\
                         and self.operation == 'sale':
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n продан, выбыл из оборота")
+                    errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота")
                 if not code_info.get("sold", False) \
                         and self.operation == 'return_sale':
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n не продан, не выбывал из оборота")
+                    errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота")
                 if self.operation == 'status':
                     if code_info.get("sold", False):
                         # будем считать что 0 это продан
                         self.status_code = 0
-                        errors.append(f"Код\n{code_info['cis']}:\n продан, выбыл из оборота")
+                        errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота")
                     else:
                         # будем считать что 2 это возвращен
                         self.status_code = 2
-                        errors.append(f"Код\n{code_info['cis']}:\n не продан, не выбывал из оборота")
+                        errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота")
                 if code_info.get("isBlocked", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
+                    errors.append(f"Код\n{code_info['cis']}\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
                 if not code_info.get("realizable", True) \
                         and not code_info.get("sold", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n нет информации о вводе кода в оборот")
+                    errors.append(f"Код\n{code_info['cis']}\n нет информации о вводе кода в оборот")
                 if not code_info.get("isOwner", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}:\n ваш ИНН и ИНН владельца кода не совпадают")
+                    errors.append(f"Код\n{code_info['cis']}\n ваш ИНН и ИНН владельца кода не совпадают")
         if errors:
             # Вывод ошибки на экран для пользователя
             f_name = self.file_name + '_errors_km.txt'
