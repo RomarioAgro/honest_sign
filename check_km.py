@@ -259,7 +259,8 @@ class CheckKM:
                     errors.append(f"Код\n{code_info['cis']}\n в ЧЗ нет информации о нанесении кода")
                 if not code_info.get("verified", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n не подтвержден, переключите на АНГЛИЙСКИЙ ЯЗЫК\nпересканируйте код")
+                    errors.append(f"Код\n{code_info['cis']}\n не подтвержден, надо найти товар с этим кодом, обнулить его,\nпереключить раскладку на АНГЛИЙСКИЙ язык,"
+                                  f" заново сканировать товар")
                 if code_info.get("sold", False)\
                         and self.operation == 'sale':
                     self.status_code = 1
@@ -272,11 +273,11 @@ class CheckKM:
                     if code_info.get("sold", False):
                         # будем считать что 0 это продан
                         self.status_code = 0
-                        errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота")
+                        errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота, это значит ДЛЯ ПРОДАЖИ НЕ ПОДХОДИТ")
                     else:
                         # будем считать что 2 это возвращен
                         self.status_code = 2
-                        errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота")
+                        errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота, это значит ДЛЯ ПРОДАЖИ ПОДХОДИТ")
                 if code_info.get("isBlocked", True):
                     self.status_code = 1
                     errors.append(f"Код\n{code_info['cis']}\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
@@ -286,7 +287,8 @@ class CheckKM:
                     errors.append(f"Код\n{code_info['cis']}\n нет информации о вводе кода в оборот")
                 if not code_info.get("isOwner", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n ваш ИНН и ИНН владельца кода не совпадают")
+                    errors.append(f"Код\n{code_info['cis']}\n ваш ИНН и ИНН владельца кода не совпадают\nэто значит, что КМ не принадлежит организации вашего магазина\n"
+                                  f"ТОРГОВАТЬ ИМ ВЫ НЕ ИМЕЕТЕ ПРАВА")
         if errors:
             # Вывод ошибки на экран для пользователя
             f_name = self.file_name + '_errors_km.txt'
