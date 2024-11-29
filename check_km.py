@@ -99,6 +99,7 @@ class CheckKM:
         """
         self.token = config_hs('token_full', default=None)
         self.token_pm = config_hs('token_pm', default=None)
+        self.names = i_dict_km.get('names', 'names not found')
         self.km = preparation_km(i_dict_km['km'])
         self.operation = i_dict_km['operation']
         self.fn = i_dict_km.get('fn', None)
@@ -204,7 +205,6 @@ class CheckKM:
                 # Проверка успешного ответа
                 if r.status_code == 200:
                     logging.debug(f'Успешный ответ от {base_url}: {r.text}')
-                    print(r.text)
                     self.answer = r.json()
                     return True
             # Проверка кода 429 или 5xx
@@ -243,51 +243,51 @@ class CheckKM:
             self.status_code = 1
             errors.append('Не удалось получить успешный ответ ни от одного из URL\n ни один КМ не проверен')
         else:
-            for code_info in data["codes"]:
+            for code_info, name in zip(data["codes"], self.names):
                 exp_date_str = code_info.get("expireDate", None)
                 if exp_date_str:
                     exp_date = datetime.datetime.strptime(exp_date_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                     current_time = datetime.datetime.utcnow()
                     if exp_date < current_time:
                         self.status_code = 1
-                        errors.append(f"Код\n{code_info['cis']}\n истек срок годности товара")
+                        errors.append(f"{name}\n{code_info['cis']}\n истек срок годности товара")
                 if not code_info.get("found", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n не найден в ЧЗ")
+                    errors.append(f"{name}\n{code_info['cis']}\n не найден в ЧЗ")
                 if not code_info.get("utilised", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n в ЧЗ нет информации о нанесении кода")
+                    errors.append(f"{name}\n{code_info['cis']}\n в ЧЗ нет информации о нанесении кода")
                 if not code_info.get("verified", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n не подтвержден, надо найти товар с этим кодом, обнулить его,\nпереключить раскладку на АНГЛИЙСКИЙ язык,"
+                    errors.append(f"{name}\n{code_info['cis']}\n не подтвержден, надо найти товар с этим кодом, обнулить его,\nпереключить раскладку на АНГЛИЙСКИЙ язык,"
                                   f" заново сканировать товар")
                 if code_info.get("sold", False)\
                         and self.operation == 'sale':
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота")
+                    errors.append(f"{name}\n{code_info['cis']}\n продан, выбыл из оборота")
                 if not code_info.get("sold", False) \
                         and self.operation == 'return_sale':
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота")
+                    errors.append(f"{name}\n{code_info['cis']}\n не продан, не выбывал из оборота")
                 if self.operation == 'status':
                     if code_info.get("sold", False):
                         # будем считать что 0 это продан
                         self.status_code = 0
-                        errors.append(f"Код\n{code_info['cis']}\n продан, выбыл из оборота, это значит ДЛЯ ПРОДАЖИ НЕ ПОДХОДИТ")
+                        errors.append(f"{name}\n{code_info['cis']}\n продан, выбыл из оборота, это значит ДЛЯ ПРОДАЖИ НЕ ПОДХОДИТ")
                     else:
                         # будем считать что 2 это возвращен
                         self.status_code = 2
-                        errors.append(f"Код\n{code_info['cis']}\n не продан, не выбывал из оборота, это значит ДЛЯ ПРОДАЖИ ПОДХОДИТ")
+                        errors.append(f"{name}\n{code_info['cis']}\n не продан, не выбывал из оборота, это значит ДЛЯ ПРОДАЖИ ПОДХОДИТ")
                 if code_info.get("isBlocked", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
+                    errors.append(f"{name}\n{code_info['cis']}\n заблокирован по решению {code_info.get('ogvs', 'ХыЗы кого')}")
                 if not code_info.get("realizable", True) \
                         and not code_info.get("sold", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n нет информации о вводе кода в оборот")
+                    errors.append(f"{name}\n{code_info['cis']}\n нет информации о вводе кода в оборот")
                 if not code_info.get("isOwner", True):
                     self.status_code = 1
-                    errors.append(f"Код\n{code_info['cis']}\n ваш ИНН и ИНН владельца кода не совпадают\nэто значит, что КМ не принадлежит организации вашего магазина\n"
+                    errors.append(f"{name}\n{code_info['cis']}\n ваш ИНН и ИНН владельца кода не совпадают\nэто значит, что КМ не принадлежит организации вашего магазина\n"
                                   f"ТОРГОВАТЬ ИМ ВЫ НЕ ИМЕЕТЕ ПРАВА")
         if errors:
             # Вывод ошибки на экран для пользователя
