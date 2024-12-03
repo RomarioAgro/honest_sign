@@ -211,6 +211,20 @@ def send_token_to_site(token: str = ''):
     r = requests.post(url=url, json=params)
     logging.debug('токен отправлен на сайт бельетаж ' + r.text)
 
+def send_token_to_site_v2(token: Dict):
+    """
+    функция отправки токена на сайт бельетаж, отправляем словарь токенов
+    полного доступа и разрешительного режима
+    им тоже нужен
+    :param token:
+    :return:
+    """
+    params = []
+    params.append(token)
+    url = config['beletag']['url_pm']
+    r = requests.post(url=url, json=params)
+    logging.debug('токен pm отправлен на сайт бельетаж ' + r.text)
+
 
 def copy_env():
     pass
@@ -274,8 +288,15 @@ def main():
         if inn == INN_BELETAG:
             # отправка токена на сайт бельетажа, им тоже надо чипы проверять
             logging.debug(f'отправка токена на сайт бельетажа')
+            token_to_beletag = {
+                "token_full": token_dict.get('token_full', None),
+                "token_pm": token_dict.get('token_pm', None)
+            }
             send_token_to_site(token=token_dict.get('token_full', None))
             logging.debug(f'закончили отправку токена на сайт бельетажа')
+            logging.debug(f'разрешительный режим отправка токена на сайт бельетажа')
+            send_token_to_site_v2(token=token_to_beletag)
+            logging.debug(f'разрешительный режим закончили отправку токена на сайт бельетажа')
         write_path = '\\\\shoprsync\\rsync\\script_py\\'
         file_to_copy = 'token.env'
         new_name_file = '.env'
