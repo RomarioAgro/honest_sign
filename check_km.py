@@ -208,6 +208,18 @@ class CheckKM:
                     self.answer = r.json()
                     return True
             # Проверка кода 429 или 5xx
+                elif r.status_code == 500:
+                    #'{"code":5000,"description":"OPERATOR-BY: System is unavailable","codes":[]}'
+                    status_code_hs = r.json().get('code', 0)
+                    if status_code_hs == 5000:
+                        answer_dict = {
+                            'reqId':r.json().get('description', 'unknown'),
+                            'reqTimestamp': datetime.datetime.now().timestamp(),
+                            'codes': {}
+                        }
+                        # answer_dict.update(param)
+                        self.answer = answer_dict
+                        return True
                 elif r.status_code == 429:
                     logging.debug(f'Код 429 (Too Many Requests) от {base_url}, переходим к следующему URL.')
                 elif 500 <= r.status_code < 600:
