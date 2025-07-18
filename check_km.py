@@ -110,6 +110,7 @@ class CheckKM:
         self.status_km = None
         self.answer = None
         self.status_code = None
+        self.status_requests = None
 
     def get_url_cdn(self) -> List:
         """
@@ -202,24 +203,26 @@ class CheckKM:
                 r = requests.post(url=url, headers=headers, json=param, timeout=(2, 2))
                 elapsed_time = time.time() - start_time
                 logging.debug(f'результат запроса статуса КМ={r.text}')
+                self.status_code = r.status_code
+                self.answer = r.json()
                 # Проверка успешного ответа
                 if r.status_code == 200:
                     logging.debug(f'Успешный ответ от {base_url}: {r.text}')
                     self.answer = r.json()
                     return True
             # Проверка кода 429 или 5xx
-                elif r.status_code == 500:
-                    #'{"code":5000,"description":"OPERATOR-BY: System is unavailable","codes":[]}'
-                    status_code_hs = r.json().get('code', 0)
-                    if status_code_hs == 5000:
-                        answer_dict = {
-                            'reqId':r.json().get('description', 'unknown'),
-                            'reqTimestamp': datetime.datetime.now().timestamp(),
-                            'codes': {}
-                        }
-                        # answer_dict.update(param)
-                        self.answer = answer_dict
-                        return True
+            #     elif r.status_code == 500:
+            #         #'{"code":5000,"description":"OPERATOR-BY: System is unavailable","codes":[]}'
+            #         status_code_hs = r.json().get('code', 0)
+            #         if status_code_hs == 5000:
+            #             answer_dict = {
+            #                 'reqId':r.json().get('description', 'unknown'),
+            #                 'reqTimestamp': datetime.datetime.now().timestamp(),
+            #                 'codes': {}
+            #             }
+            #             # answer_dict.update(param)
+            #             self.answer = answer_dict
+            #             return True
                 elif r.status_code == 429:
                     logging.debug(f'Код 429 (Too Many Requests) от {base_url}, переходим к следующему URL.')
                 elif 500 <= r.status_code < 600:
@@ -235,6 +238,20 @@ class CheckKM:
 
             except requests.RequestException as e:
                 logging.debug(f'Ошибка при запросе к {base_url}: {e}, переходим к следующему URL.')
+        else:
+            if self.status_code == 500:
+                # '{"code":5000,"description":"OPERATOR-BY: System is unavailable","codes":[]}'
+                status_code_hs = self.answer.get('code', 0)
+                if status_code_hs == 5000:
+                    answer_dict = {
+                        'reqId': self.answer.get('description', 'unknown'),
+                        'reqTimestamp': datetime.datetime.now().timestamp(),
+                        'codes': {}
+                    }
+                    # answer_dict.update(param)
+                    self.answer = answer_dict
+                    return True
+
         logging.debug('Не удалось получить успешный ответ ни от одного из URL.')
         self.answer = None
 
