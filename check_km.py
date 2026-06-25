@@ -15,6 +15,8 @@ from shtrih.preparation_km_to_honest_sign import preparation_km as km_with_gs
 # import importlib
 
 
+
+
 logging.basicConfig(
     filename='d:\\files\\' + os.path.basename(__file__)[:-3] + '_' + datetime.date.today().strftime('%Y-%m-%d') + '.log',
     filemode='a',
@@ -148,42 +150,6 @@ class CheckKM:
                 logging.debug(f'ошибка импорта модуля {exc}')
             pm_get_cdn.main()
 
-
-    def check_km(self) -> None:
-        """
-        метод проверки КМ в честном знаке
-        :return:
-        """
-        url = 'https://markirovka.crpt.ru/api/v3/true-api/cises/info'
-        headers = {
-            'Authorization': 'Bearer ' + self.token,
-            "content-type": "application/json;charset=UTF-8",
-            'accept': '*/*'
-        }
-        i_data = self.km
-        params = {
-            "childsWithBrackets": True
-        }
-        logging.debug('json {0}'.format(i_data))
-        try:
-            r = requests.post(url=url, headers=headers, params=params, json=self.km, timeout=30)
-        except Exception as exc:
-            logging.debug('error ' + str(exc))
-            exit(504)
-        logging.debug('результат проверки в ЧЗ: {0}'.format(r.text))
-        self.status_code = r.status_code
-        print(r.json())
-        if r.status_code == 200 and r.text != '{}':
-            with open('status_KI.txt', 'w', encoding='utf-8') as i_file:
-                i_file.write(json.dumps(r.json(), ensure_ascii=False, indent=4))
-            inf_about_km = r.json()[0]['cisInfo']
-            self.owner_inn = inf_about_km.get('ownerInn', None)
-            self.status_km = inf_about_km.get('status', None)
-            self.answer = r.json()
-        else:
-            logging.debug('связь есть, но ошибка в запросе, потому что ответ равен: {0}'.format(r.text))
-            exit(r.status_code)
-
     def check_km_permission_mode(self):
         """
         проверка КМ в ЧЗ разрешительный режим
@@ -210,19 +176,6 @@ class CheckKM:
                     logging.debug(f'Успешный ответ от {base_url}: {r.text}')
                     self.answer = r.json()
                     return True
-            # Проверка кода 429 или 5xx
-            #     elif r.status_code == 500:
-            #         #'{"code":5000,"description":"OPERATOR-BY: System is unavailable","codes":[]}'
-            #         status_code_hs = r.json().get('code', 0)
-            #         if status_code_hs == 5000:
-            #             answer_dict = {
-            #                 'reqId':r.json().get('description', 'unknown'),
-            #                 'reqTimestamp': datetime.datetime.now().timestamp(),
-            #                 'codes': {}
-            #             }
-            #             # answer_dict.update(param)
-            #             self.answer = answer_dict
-            #             return True
                 elif r.status_code == 429:
                     logging.debug(f'Код 429 (Too Many Requests) от {base_url}, переходим к следующему URL.')
                 elif 500 <= r.status_code < 600:
